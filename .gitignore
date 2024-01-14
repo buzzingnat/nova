@@ -64,7 +64,7 @@ etc/
 tsc/
 
 # Don't include built js file.
-public/app
+public/client
 # Don't include old graphics.
 public/gfx/old
 # Don't include graphics that haven't been processed yet.
