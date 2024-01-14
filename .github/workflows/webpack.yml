@@ -1,0 +1,39 @@
+name: NodeJS with Webpack
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x, 18.x]
+
+    steps:
+    - uses: actions/checkout@v3
+
+   # found on https://github.com/actions/setup-node/issues/32#issuecomment-1003854758
+    - name: Setup node
+      uses: actions/setup-node@v3
+      with:
+        node-version-file: '.nvmrc'
+        
+    - name: Run install
+      uses: borales/actions-yarn@v4.2.0
+      with:
+        cmd: install # will run `yarn install` command
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # if needed
+    - name: Build production bundle
+      uses: borales/actions-yarn@v4.2.0
+      with:
+        cmd: build:prod # will run `yarn build:prod` command
+    - name: Test the app
+      uses: borales/actions-yarn@v4.2.0
+      with:
+        cmd: test # will run `yarn test` command
