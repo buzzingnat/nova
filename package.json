@@ -4,22 +4,25 @@
   "description": "",
   "main": "src/client.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --coverage",
     "start": "npm-run-all -p -r webpack server",
     "webpack": "webpack -w --progress",
     "server": "node server",
     "build:prod": "webpack --mode production"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
+    "@types/jest": "^29.5.11",
     "circular-dependency-plugin": "^5.2.2",
     "express": "^4.18.2",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "minimatch": "3.1.2",
     "npm-run-all": "^4.1.5",
+    "ts-jest": "^29.1.1",
     "ts-loader": "^9.2.6",
     "ts-unused-exports": "^6.2.4",
-    "typescript": "^4.9.4",
+    "typescript": "^5.3.3",
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.1"
   },

@@ -13,7 +13,6 @@ import {
 } from 'app/constants';
 
 
-
 function initializeGame(state: GameState) {
     bindMouseListeners();
     addContextMenuListeners();
@@ -25,7 +24,6 @@ function initializeGame(state: GameState) {
     state.spaceship.x = mainCanvas.width / 2;
     state.spaceship.y = mainCanvas.height / 2;
 }
-
 
 function update(): void {
     const state = getState();
