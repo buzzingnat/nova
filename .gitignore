@@ -80,3 +80,6 @@ rsync.txt
 
 # osx file
 .DS_Store
+
+# in case developer accidentally runs npm
+package-lock.json
