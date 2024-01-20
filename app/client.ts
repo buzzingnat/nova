@@ -4,7 +4,7 @@ import { mainCanvas, mainContext } from 'app/utils/canvas';
 import { getDistance } from 'app/utils/geometry';
 import { query } from 'app/utils/dom';
 import { addKeyboardListeners, isGameKeyDown, updateKeyboardState } from 'app/utils/userInput';
-import { addContextMenuListeners, bindMouseListeners } from 'app/utils/mouse';
+import { addContextMenuListeners, bindMouseListeners, isMouseDown, getMousePosition } from 'app/utils/mouse';
 
 import {
     ASTEROID_CULLING_DISTANCE,
@@ -31,6 +31,15 @@ function update(): void {
         initializeGame(state);
     }
     updateKeyboardState(state);
+
+    // MOUSE: update mouse position, adjust for camera
+    // translate(-state.camera.x, -state.camera.y)
+    const newMousePosition = getMousePosition(mainCanvas);
+    state.mouse.x = newMousePosition[0] + state.camera.x;
+    state.mouse.y = newMousePosition[1] + state.camera.y;
+    // MOUSE: update mouse state
+    state.mouse.isDown = isMouseDown();
+
     updatePlayerSpaceship(state);
     updateBullets(state);
     updateAsteroids(state);
@@ -69,15 +78,44 @@ function updateAsteroids(state: GameState) {
 function updatePlayerSpaceship(state: GameState) {
     const spaceship = state.spaceship;
     let acceleration = 0;
-    if (isGameKeyDown(state, GAME_KEY.UP)) {
+    if (isGameKeyDown(state, GAME_KEY.UP) || isMouseDown()) {
         acceleration = .15;
     } else if (isGameKeyDown(state, GAME_KEY.DOWN)) {
         acceleration = -0.05;
     }
-    if (isGameKeyDown(state, GAME_KEY.LEFT)) {
+
+    // calc dy and dx of spaceship to mouse
+    // new angle of spaceship (don't set yet...) = math.atan2(dy,dx)
+    // calc which direction to spin is shorter, clockwise vs counterclockwise
+    // use radians (2pi is full circle), function to normalize radians between 0 and 2pi
+    // positive rotation is clockwise
+    // to check clockwise, take target angle - existing angle, normalize between 0 and 2pi,
+    // if that is less than or equal to pi then it is shortest direction,
+    // otherwise rotate counterclockwise bc it is the shortest direction
+
+    function normalizeRadians(input: number) {
+        const n = Math.PI * 2;
+        return ( ( input % n ) + n ) % n;
+    }
+    function isRotationPositive(state: GameState) {
+        const dy = state.spaceship.y - state.mouse.y;
+        const dx = state.spaceship.x - state.mouse.x;
+        const existingAngle = state.spaceship.rotation;
+        const targetAngle = Math.atan2(dy,dx);
+        const normalizeDeltaAngle = normalizeRadians(targetAngle - existingAngle);
+
+        console.log({mouseX: state.mouse.x, mouseY: state.mouse.y, dx, dy});
+
+        if ( normalizeDeltaAngle <= Math.PI ) {
+            return true;
+        }
+        return false;
+    }
+
+    if (isGameKeyDown( state, GAME_KEY.LEFT) || ( isMouseDown() && !isRotationPositive(state) ) ) {
         spaceship.rotation -= 0.1;
     }
-    if (isGameKeyDown(state, GAME_KEY.RIGHT)) {
+    if (isGameKeyDown( state, GAME_KEY.RIGHT)  || ( isMouseDown() && isRotationPositive(state) ) ) {
         spaceship.rotation += 0.1;
     }
 
