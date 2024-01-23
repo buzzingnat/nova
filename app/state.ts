@@ -13,6 +13,14 @@ function getInitialState(): GameState {
             isRightDown: false,
             wasRightPressed: false,
         },
+        pointer: {
+            x: 400,
+            y: 300,
+            isDown: false,
+            wasPressed: false,
+            isMultiTouch: false,
+            wasMultiTouchPressed: false,
+        },
         isUsingKeyboard: true,
         keyboard: {
             gameKeyValues: [],

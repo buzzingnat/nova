@@ -8,6 +8,14 @@ interface GameState {
         isRightDown: boolean
         wasRightPressed: boolean
     }
+    pointer: {
+        x: number
+        y: number
+        isDown: boolean
+        wasPressed: boolean
+        isMultiTouch: boolean
+        wasMultiTouchPressed: boolean
+    }
     keyboard: {
         gameKeyValues: number[]
         gameKeysDown: Set<number>

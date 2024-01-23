@@ -4,7 +4,8 @@ import { mainCanvas, mainContext } from 'app/utils/canvas';
 import { getDistance } from 'app/utils/geometry';
 import { query } from 'app/utils/dom';
 import { addKeyboardListeners, isGameKeyDown, updateKeyboardState } from 'app/utils/userInput';
-import { addContextMenuListeners, bindMouseListeners, isMouseDown, isRightMouseDown, getMousePosition } from 'app/utils/mouse';
+import { addContextMenuListeners, /*bindMouseListeners,*/ isMouseDown, isRightMouseDown, /*getMousePosition*/ } from 'app/utils/mouse';
+import { bindPointerListeners, isPrimaryPointerDown, isMultiTouch, getPointerPosition } from 'app/utils/pointer';
 
 import {
     ASTEROID_CULLING_DISTANCE,
@@ -14,7 +15,8 @@ import {
 
 
 function initializeGame(state: GameState) {
-    bindMouseListeners();
+    // bindMouseListeners();
+    bindPointerListeners();
     addContextMenuListeners();
     addKeyboardListeners();
     query('.js-loading')!.style.display = 'none';
@@ -33,11 +35,16 @@ function update(): void {
     updateKeyboardState(state);
 
     // MOUSE: update mouse position, adjust for camera
-    const newMousePosition = getMousePosition(mainCanvas);
-    const {x, y} = getMousePositionInUniverse(newMousePosition, state.camera);
-    state.mouse.x = x;
-    state.mouse.y = y;
-    state.mouse.isDown = isMouseDown();
+    // const newMousePosition = getMousePosition(mainCanvas);
+    // const {x, y} = getMousePositionInUniverse(newMousePosition, state.camera);
+    // state.mouse.x = x;
+    // state.mouse.y = y;
+    // state.mouse.isDown = isMouseDown();
+    const newPointerPosition = getPointerPosition(mainCanvas);
+    const {x, y} = getPointerPositionInUniverse(newPointerPosition, state.camera);
+    state.pointer.x = x;
+    state.pointer.y = y;
+    state.pointer.isDown = isPrimaryPointerDown();
     updatePlayerSpaceship(state);
     updateBullets(state);
     updateAsteroids(state);
@@ -46,9 +53,9 @@ function update(): void {
     state.camera.y = state.spaceship.y - mainCanvas.height / 2;
 }
 
-function getMousePositionInUniverse(mousePosition: Coords, camera: {x: number, y: number}) {
-    const x = mousePosition[0] + camera.x;
-    const y = mousePosition[1] + camera.y;
+function getPointerPositionInUniverse(pointerPosition: Coords, camera: {x: number, y: number}) {
+    const x = pointerPosition[0] + camera.x;
+    const y = pointerPosition[1] + camera.y;
     return {x, y};
 }
 
@@ -82,9 +89,9 @@ function updateAsteroids(state: GameState) {
 function updatePlayerSpaceship(state: GameState) {
     const spaceship = state.spaceship;
     let acceleration = 0;
-    if (isGameKeyDown(state, GAME_KEY.UP) || isMouseDown()) {
+    if (isGameKeyDown(state, GAME_KEY.UP) || isMouseDown() || isPrimaryPointerDown()) {
         acceleration = .15;
-    } else if (isGameKeyDown(state, GAME_KEY.DOWN) || isRightMouseDown()) {
+    } else if (isGameKeyDown(state, GAME_KEY.DOWN) || isRightMouseDown() || isMultiTouch()) {
         acceleration = -0.05;
     }
 
@@ -102,13 +109,17 @@ function updatePlayerSpaceship(state: GameState) {
         return ( ( input % n ) + n ) % n;
     }
     function isRotationPositive(state: GameState) {
-        const dy = state.spaceship.y - state.mouse.y;
-        const dx = state.spaceship.x - state.mouse.x;
+        let dy: number = 0, dx: number = 0;
+        if (state.pointer.isDown) {
+            dy = state.spaceship.y - state.pointer.y;
+            dx = state.spaceship.x - state.pointer.x;
+        } else if (state.mouse.isDown) {
+            dy = state.spaceship.y - state.mouse.y;
+            dx = state.spaceship.x - state.mouse.x;
+        }
         const existingAngle = state.spaceship.rotation;
         const targetAngle = Math.atan2(dy,dx);
         const normalizeDeltaAngle = normalizeRadians(targetAngle - existingAngle);
-
-        console.log({mouseX: state.mouse.x, mouseY: state.mouse.y, dx, dy});
 
         if ( normalizeDeltaAngle <= Math.PI ) {
             return true;
@@ -116,10 +127,10 @@ function updatePlayerSpaceship(state: GameState) {
         return false;
     }
 
-    if (isGameKeyDown( state, GAME_KEY.LEFT) || ( isMouseDown() && isRotationPositive(state) ) ) {
+    if ( isGameKeyDown(state, GAME_KEY.LEFT) || ( ( isPrimaryPointerDown() || isMouseDown() ) && isRotationPositive(state) ) ) {
         spaceship.rotation -= 0.1;
     }
-    if (isGameKeyDown( state, GAME_KEY.RIGHT)  || ( isMouseDown() && !isRotationPositive(state) ) ) {
+    if ( isGameKeyDown(state, GAME_KEY.RIGHT)  || ( ( isPrimaryPointerDown() || isMouseDown() ) && !isRotationPositive(state) ) ) {
         spaceship.rotation += 0.1;
     }
 
