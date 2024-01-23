@@ -4,7 +4,7 @@ import { mainCanvas, mainContext } from 'app/utils/canvas';
 import { getDistance } from 'app/utils/geometry';
 import { query } from 'app/utils/dom';
 import { addKeyboardListeners, isGameKeyDown, updateKeyboardState } from 'app/utils/userInput';
-import { addContextMenuListeners, bindMouseListeners, isMouseDown, getMousePosition } from 'app/utils/mouse';
+import { addContextMenuListeners, bindMouseListeners, isMouseDown, isRightMouseDown, getMousePosition } from 'app/utils/mouse';
 
 import {
     ASTEROID_CULLING_DISTANCE,
@@ -80,7 +80,7 @@ function updatePlayerSpaceship(state: GameState) {
     let acceleration = 0;
     if (isGameKeyDown(state, GAME_KEY.UP) || isMouseDown()) {
         acceleration = .15;
-    } else if (isGameKeyDown(state, GAME_KEY.DOWN)) {
+    } else if (isGameKeyDown(state, GAME_KEY.DOWN) || isRightMouseDown()) {
         acceleration = -0.05;
     }
 
@@ -112,10 +112,10 @@ function updatePlayerSpaceship(state: GameState) {
         return false;
     }
 
-    if (isGameKeyDown( state, GAME_KEY.LEFT) || ( isMouseDown() && !isRotationPositive(state) ) ) {
+    if (isGameKeyDown( state, GAME_KEY.LEFT) || ( isMouseDown() && isRotationPositive(state) ) ) {
         spaceship.rotation -= 0.1;
     }
-    if (isGameKeyDown( state, GAME_KEY.RIGHT)  || ( isMouseDown() && isRotationPositive(state) ) ) {
+    if (isGameKeyDown( state, GAME_KEY.RIGHT)  || ( isMouseDown() && !isRotationPositive(state) ) ) {
         spaceship.rotation += 0.1;
     }
 
