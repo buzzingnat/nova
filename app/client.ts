@@ -33,13 +33,11 @@ function update(): void {
     updateKeyboardState(state);
 
     // MOUSE: update mouse position, adjust for camera
-    // translate(-state.camera.x, -state.camera.y)
     const newMousePosition = getMousePosition(mainCanvas);
-    state.mouse.x = newMousePosition[0] + state.camera.x;
-    state.mouse.y = newMousePosition[1] + state.camera.y;
-    // MOUSE: update mouse state
+    const {x, y} = getMousePositionInUniverse(newMousePosition, state.camera);
+    state.mouse.x = x;
+    state.mouse.y = y;
     state.mouse.isDown = isMouseDown();
-    updateMouseState(state);
     updatePlayerSpaceship(state);
     updateBullets(state);
     updateAsteroids(state);
@@ -48,22 +46,10 @@ function update(): void {
     state.camera.y = state.spaceship.y - mainCanvas.height / 2;
 }
 
-function updateMouseState(state: GameState) {
-    if (isMouseDown()) {
-        // const mouseClick = getMousePositionInUniverse(state);
-        // console.log({x: mouseClick[0], y: mouseClick[1]});
-        // state.mouse.x = mouseClick[0];
-        // state.mouse.y = mouseClick[1];
-    }
-    return;
-}
-
-function getMousePositionInUniverse(state: GameState) {
-    const mousePosition = getMousePosition(mainCanvas);
-    const camera = state.camera;
-    const x: number = mousePosition[0] + camera.x;
-    const y: number = mousePosition[1] + camera.y;
-    return [x, y];
+function getMousePositionInUniverse(mousePosition: Coords, camera: {x: number, y: number}) {
+    const x = mousePosition[0] + camera.x;
+    const y = mousePosition[1] + camera.y;
+    return {x, y};
 }
 
 function updateBullets(state: GameState) {
@@ -94,17 +80,6 @@ function updateAsteroids(state: GameState) {
 }
 
 function updatePlayerSpaceship(state: GameState) {
-    // find dy and dx between click and spaceship
-    const moveDeltaX = state.mouse.x - state.spaceship.x;
-    const moveDeltaY = state.mouse.y - state.spaceship.y;
-    // use that in formula: atan2(dx, dy) to get angle
-    const targetAngle = Math.atan2(moveDeltaX, moveDeltaY);
-    // then normalize that so it is always between 0 and 2pi
-    // mod by circle, but this is +-PI; add PI, but now might be too big; mod by 2PI again
-    const normalizedTargetAngle = ( targetAngle % (Math.PI * 2) + Math.PI) % (Math.PI * 2);
-    // calculate whether to turn clockwise or counterclockwise
-    // ??? based on if angle is less than or = to 1pi of current spaceship angle ???
-
     const spaceship = state.spaceship;
     let acceleration = 0;
     if (isGameKeyDown(state, GAME_KEY.UP) || isMouseDown()) {
