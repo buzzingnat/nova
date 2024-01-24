@@ -35,11 +35,12 @@ function update(): void {
     updateKeyboardState(state);
 
     // MOUSE: update mouse position, adjust for camera
-    // const newMousePosition = getMousePosition(mainCanvas);
-    // const {x, y} = getMousePositionInUniverse(newMousePosition, state.camera);
-    // state.mouse.x = x;
-    // state.mouse.y = y;
-    // state.mouse.isDown = isMouseDown();
+    const newMousePosition = getMousePosition(mainCanvas);
+    const {x, y} = getMousePositionInUniverse(newMousePosition, state.camera);
+    state.mouse.x = x;
+    state.mouse.y = y;
+    state.mouse.isDown = isMouseDown();
+    // POINTER: update pointer position, adjust for camera
     const newPointerPosition = getPointerPosition(mainCanvas);
     const {x, y} = getPointerPositionInUniverse(newPointerPosition, state.camera);
     state.pointer.x = x;
@@ -86,47 +87,45 @@ function updateAsteroids(state: GameState) {
     }
 }
 
+function normalizeRadians(input: number) {
+    const n = Math.PI * 2;
+    return ( ( input % n ) + n ) % n;
+}
+// calc dy and dx of spaceship to mouse/pointer
+// new angle of spaceship (don't set yet...) = math.atan2(dy,dx)
+// calc which direction to spin is shorter, clockwise vs counterclockwise
+// use radians (2pi is full circle), function to normalize radians between 0 and 2pi
+// positive rotation is clockwise
+// to check clockwise, take target angle minus existing angle, normalize between 0 and 2pi,
+// if that is less than or equal to pi then it is shortest direction,
+// otherwise rotate counterclockwise
+function isRotationPositive(state: GameState) {
+    let dy: number = 0, dx: number = 0;
+    if (state.mouse.isDown) { // check for mouse first
+        dy = state.spaceship.y - state.mouse.y;
+        dx = state.spaceship.x - state.mouse.x;
+    } else if (state.pointer.isDown) { // with no mouse available, check for pointer
+        dy = state.spaceship.y - state.pointer.y;
+        dx = state.spaceship.x - state.pointer.x;
+    }
+    const existingAngle = state.spaceship.rotation;
+    const targetAngle = Math.atan2(dy,dx);
+    const normalizeDeltaAngle = normalizeRadians(targetAngle - existingAngle);
+
+    if ( normalizeDeltaAngle <= Math.PI ) {
+        return true;
+    }
+    return false;
+}
+
 function updatePlayerSpaceship(state: GameState) {
     const spaceship = state.spaceship;
     let acceleration = 0;
     if (isGameKeyDown(state, GAME_KEY.UP) || isMouseDown() || isPrimaryPointerDown()) {
         acceleration = .15;
-    } else if (isGameKeyDown(state, GAME_KEY.DOWN) || isRightMouseDown() || isMultiTouch()) {
+    } else if (isGameKeyDown(state, GAME_KEY.DOWN)) { // no brakes for mouse/pointer yet
         acceleration = -0.05;
     }
-
-    // calc dy and dx of spaceship to mouse
-    // new angle of spaceship (don't set yet...) = math.atan2(dy,dx)
-    // calc which direction to spin is shorter, clockwise vs counterclockwise
-    // use radians (2pi is full circle), function to normalize radians between 0 and 2pi
-    // positive rotation is clockwise
-    // to check clockwise, take target angle - existing angle, normalize between 0 and 2pi,
-    // if that is less than or equal to pi then it is shortest direction,
-    // otherwise rotate counterclockwise bc it is the shortest direction
-
-    function normalizeRadians(input: number) {
-        const n = Math.PI * 2;
-        return ( ( input % n ) + n ) % n;
-    }
-    function isRotationPositive(state: GameState) {
-        let dy: number = 0, dx: number = 0;
-        if (state.pointer.isDown) {
-            dy = state.spaceship.y - state.pointer.y;
-            dx = state.spaceship.x - state.pointer.x;
-        } else if (state.mouse.isDown) {
-            dy = state.spaceship.y - state.mouse.y;
-            dx = state.spaceship.x - state.mouse.x;
-        }
-        const existingAngle = state.spaceship.rotation;
-        const targetAngle = Math.atan2(dy,dx);
-        const normalizeDeltaAngle = normalizeRadians(targetAngle - existingAngle);
-
-        if ( normalizeDeltaAngle <= Math.PI ) {
-            return true;
-        }
-        return false;
-    }
-
     if ( isGameKeyDown(state, GAME_KEY.LEFT) || ( ( isPrimaryPointerDown() || isMouseDown() ) && isRotationPositive(state) ) ) {
         spaceship.rotation -= 0.1;
     }
@@ -148,7 +147,7 @@ function updatePlayerSpaceship(state: GameState) {
     if (spaceship.shootCooldown > 0) {
         spaceship.shootCooldown -= FRAME_LENGTH;
     }
-    if (spaceship.shootCooldown <= 0 && isGameKeyDown(state, GAME_KEY.SHOOT)) {
+    if (spaceship.shootCooldown <= 0 && ( isGameKeyDown(state, GAME_KEY.SHOOT)) || isRightMouseDown() || isMultiTouch() ) {
         state.playerBullets.push({
             x: spaceship.x + spaceship.size * dx,
             y: spaceship.y + spaceship.size * dy,
