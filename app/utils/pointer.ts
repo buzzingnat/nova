@@ -75,6 +75,16 @@ export function isMultiTouch(): boolean {
     return false;
 }
 
+export function isTwoTouch(): boolean {
+    if (pointerList.length === 2) return true;
+    return false;
+}
+
+export function isThreeTouch(): boolean {
+    if (pointerList.length === 3) return true;
+    return false;
+}
+
 // export function isRightMouseDown(): boolean {
 //     return rightMouseIsDown;
 // }

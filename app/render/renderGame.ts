@@ -70,7 +70,9 @@ function renderBullet(context: CanvasRenderingContext2D, state: GameState, bulle
 function renderAsteroid(context: CanvasRenderingContext2D, state: GameState, asteroid: Asteroid) {
     context.beginPath();
     context.arc(asteroid.x, asteroid.y, asteroid.size, 0, 2 * Math.PI);
-    context.strokeStyle = '#fff';
+    context.fillStyle = asteroid.secondaryColor ?? '#000';
+    context.fill();
+    context.strokeStyle = asteroid.primaryColor;
     context.stroke();
 }
 

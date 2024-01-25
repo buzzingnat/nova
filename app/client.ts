@@ -1,11 +1,11 @@
 import { render } from 'app/render/renderGame';
 import { getState } from 'app/state';
 import { mainCanvas, mainContext } from 'app/utils/canvas';
-import { getDistance } from 'app/utils/geometry';
+import { getDistance, doCirclesIntersect } from 'app/utils/geometry';
 import { query } from 'app/utils/dom';
 import { addKeyboardListeners, isGameKeyDown, updateKeyboardState } from 'app/utils/userInput';
-import { addContextMenuListeners, /*bindMouseListeners,*/ isMouseDown, isRightMouseDown, /*getMousePosition*/ } from 'app/utils/mouse';
-import { bindPointerListeners, isPrimaryPointerDown, isMultiTouch, getPointerPosition } from 'app/utils/pointer';
+import { addContextMenuListeners, bindMouseListeners, isMouseDown, isRightMouseDown, getMousePosition } from 'app/utils/mouse';
+import { bindPointerListeners, isPrimaryPointerDown, isTwoTouch, /*isThreeTouch,*/ getPointerPosition } from 'app/utils/pointer';
 
 import {
     ASTEROID_CULLING_DISTANCE,
@@ -15,7 +15,7 @@ import {
 
 
 function initializeGame(state: GameState) {
-    // bindMouseListeners();
+    bindMouseListeners();
     bindPointerListeners();
     addContextMenuListeners();
     addKeyboardListeners();
@@ -35,15 +35,16 @@ function update(): void {
     updateKeyboardState(state);
 
     // MOUSE: update mouse position, adjust for camera
-    // const newMousePosition = getMousePosition(mainCanvas);
-    // const {x, y} = getMousePositionInUniverse(newMousePosition, state.camera);
-    // state.mouse.x = x;
-    // state.mouse.y = y;
-    // state.mouse.isDown = isMouseDown();
+    const newMousePosition = getMousePosition(mainCanvas);
+    const {x: mouseX, y: mouseY} = getPositionInUniverse(newMousePosition, state.camera);
+    state.mouse.x = mouseX;
+    state.mouse.y = mouseY;
+    state.mouse.isDown = isMouseDown();
+    // POINTER: update pointer position, adjust for camera
     const newPointerPosition = getPointerPosition(mainCanvas);
-    const {x, y} = getPointerPositionInUniverse(newPointerPosition, state.camera);
-    state.pointer.x = x;
-    state.pointer.y = y;
+    const {x: pointerX, y: pointerY} = getPositionInUniverse(newPointerPosition, state.camera);
+    state.pointer.x = pointerX;
+    state.pointer.y = pointerY;
     state.pointer.isDown = isPrimaryPointerDown();
     updatePlayerSpaceship(state);
     updateBullets(state);
@@ -53,9 +54,9 @@ function update(): void {
     state.camera.y = state.spaceship.y - mainCanvas.height / 2;
 }
 
-function getPointerPositionInUniverse(pointerPosition: Coords, camera: {x: number, y: number}) {
-    const x = pointerPosition[0] + camera.x;
-    const y = pointerPosition[1] + camera.y;
+function getPositionInUniverse(objectPosition: Coords, camera: {x: number, y: number}) {
+    const x = objectPosition[0] + camera.x;
+    const y = objectPosition[1] + camera.y;
     return {x, y};
 }
 
@@ -68,6 +69,17 @@ function updateBullets(state: GameState) {
             state.playerBullets.splice(i--, 1);
             return;
         }
+        for (let j = 0; j < state.asteroids.length; j++) {
+            const asteroid: Asteroid = state.asteroids[j];
+            if (doCirclesIntersect(asteroid, bullet)) {
+                asteroid.primaryColor = '#f00';
+                asteroid.hitTimer = asteroid.maxHitTime;
+                asteroid.armor -= 1;
+                // lightness set between 50 and 100 to be in the lighter half of hsl space
+                const lightness = 50 * asteroid.armor / asteroid.maxArmor;
+                asteroid.secondaryColor = 'hsl(0 10% ' + lightness + '%)';
+            }
+        }
     }
 }
 
@@ -76,9 +88,15 @@ function updateAsteroids(state: GameState) {
         const asteroid = state.asteroids[i];
         asteroid.x += asteroid.velocity.x;
         asteroid.y += asteroid.velocity.y;
-        if (getDistance(state.spaceship, asteroid) > ASTEROID_CULLING_DISTANCE) {
+        if (getDistance(state.spaceship, asteroid) > ASTEROID_CULLING_DISTANCE || asteroid.armor <= 0) {
             state.asteroids.splice(i--, 1);
             return;
+        }
+        if (asteroid.hitTimer > 0) {
+            // lightness set between 50 and 100 to be in the lighter half of hsl space
+            const lightness = 100 - (50 * asteroid.hitTimer / asteroid.maxHitTime);
+            asteroid.primaryColor = 'hsl(0 70% ' + lightness + '%)';
+            asteroid.hitTimer--;
         }
     }
     while (state.asteroids.length < 5) {
@@ -86,47 +104,45 @@ function updateAsteroids(state: GameState) {
     }
 }
 
+function normalizeRadians(input: number) {
+    const n = Math.PI * 2;
+    return ( ( input % n ) + n ) % n;
+}
+// calc dy and dx of spaceship to mouse/pointer
+// new angle of spaceship (don't set yet...) = math.atan2(dy,dx)
+// calc which direction to spin is shorter, clockwise vs counterclockwise
+// use radians (2pi is full circle), function to normalize radians between 0 and 2pi
+// positive rotation is clockwise
+// to check clockwise, take target angle minus existing angle, normalize between 0 and 2pi,
+// if that is less than or equal to pi then it is shortest direction,
+// otherwise rotate counterclockwise
+function isRotationPositive(state: GameState) {
+    let dy: number = 0, dx: number = 0;
+    if (state.mouse.isDown) { // check for mouse first
+        dy = state.spaceship.y - state.mouse.y;
+        dx = state.spaceship.x - state.mouse.x;
+    } else if (state.pointer.isDown) { // with no mouse available, check for pointer
+        dy = state.spaceship.y - state.pointer.y;
+        dx = state.spaceship.x - state.pointer.x;
+    }
+    const existingAngle = state.spaceship.rotation;
+    const targetAngle = Math.atan2(dy,dx);
+    const normalizeDeltaAngle = normalizeRadians(targetAngle - existingAngle);
+
+    if ( normalizeDeltaAngle <= Math.PI ) {
+        return true;
+    }
+    return false;
+}
+
 function updatePlayerSpaceship(state: GameState) {
     const spaceship = state.spaceship;
     let acceleration = 0;
     if (isGameKeyDown(state, GAME_KEY.UP) || isMouseDown() || isPrimaryPointerDown()) {
         acceleration = .15;
-    } else if (isGameKeyDown(state, GAME_KEY.DOWN) || isRightMouseDown() || isMultiTouch()) {
+    } else if (isGameKeyDown(state, GAME_KEY.DOWN)) { // no brakes for mouse/pointer yet
         acceleration = -0.05;
     }
-
-    // calc dy and dx of spaceship to mouse
-    // new angle of spaceship (don't set yet...) = math.atan2(dy,dx)
-    // calc which direction to spin is shorter, clockwise vs counterclockwise
-    // use radians (2pi is full circle), function to normalize radians between 0 and 2pi
-    // positive rotation is clockwise
-    // to check clockwise, take target angle - existing angle, normalize between 0 and 2pi,
-    // if that is less than or equal to pi then it is shortest direction,
-    // otherwise rotate counterclockwise bc it is the shortest direction
-
-    function normalizeRadians(input: number) {
-        const n = Math.PI * 2;
-        return ( ( input % n ) + n ) % n;
-    }
-    function isRotationPositive(state: GameState) {
-        let dy: number = 0, dx: number = 0;
-        if (state.pointer.isDown) {
-            dy = state.spaceship.y - state.pointer.y;
-            dx = state.spaceship.x - state.pointer.x;
-        } else if (state.mouse.isDown) {
-            dy = state.spaceship.y - state.mouse.y;
-            dx = state.spaceship.x - state.mouse.x;
-        }
-        const existingAngle = state.spaceship.rotation;
-        const targetAngle = Math.atan2(dy,dx);
-        const normalizeDeltaAngle = normalizeRadians(targetAngle - existingAngle);
-
-        if ( normalizeDeltaAngle <= Math.PI ) {
-            return true;
-        }
-        return false;
-    }
-
     if ( isGameKeyDown(state, GAME_KEY.LEFT) || ( ( isPrimaryPointerDown() || isMouseDown() ) && isRotationPositive(state) ) ) {
         spaceship.rotation -= 0.1;
     }
@@ -148,7 +164,7 @@ function updatePlayerSpaceship(state: GameState) {
     if (spaceship.shootCooldown > 0) {
         spaceship.shootCooldown -= FRAME_LENGTH;
     }
-    if (spaceship.shootCooldown <= 0 && isGameKeyDown(state, GAME_KEY.SHOOT)) {
+    if (spaceship.shootCooldown <= 0 && ( isGameKeyDown(state, GAME_KEY.SHOOT) || isRightMouseDown() || isTwoTouch() ) ) {
         state.playerBullets.push({
             x: spaceship.x + spaceship.size * dx,
             y: spaceship.y + spaceship.size * dy,
@@ -157,7 +173,9 @@ function updatePlayerSpaceship(state: GameState) {
                 y: dy * 5 + spaceship.velocity.y,
             },
             size: 3,
+            radius: 3/2,
             rotation: spaceship.rotation,
+            primaryColor: '#fff',
         });
         spaceship.shootCooldown = spaceship.reloadTime;
     }
@@ -169,6 +187,7 @@ function createAsteroid(state: GameState) {
     const distance = ASTEROID_GENERATION_DISTANCE_RANGE[0] + Math.random() * (
         ASTEROID_GENERATION_DISTANCE_RANGE[1] - ASTEROID_GENERATION_DISTANCE_RANGE[0]
     );
+    const size = 15;
     return {
         x: state.spaceship.x + distance * Math.cos(spawnAngle),
         y: state.spaceship.y + distance * Math.sin(spawnAngle),
@@ -176,8 +195,15 @@ function createAsteroid(state: GameState) {
             x: 2 * Math.cos(rotation),
             y: 2 * Math.sin(rotation),
         },
-        size: 15,
+        size,
+        radius: size/2,
         rotation,
+        primaryColor: '#fff',
+        secondaryColor: '#000',
+        armor: Math.floor(size / 2),
+        maxArmor: Math.floor(size / 2),
+        hitTimer: 0,
+        maxHitTime: 50,
     };
 }
 
