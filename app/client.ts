@@ -4,8 +4,8 @@ import { mainCanvas, mainContext } from 'app/utils/canvas';
 import { getDistance, doCirclesIntersect } from 'app/utils/geometry';
 import { query } from 'app/utils/dom';
 import { addKeyboardListeners, isGameKeyDown, updateKeyboardState } from 'app/utils/userInput';
-import { addContextMenuListeners, bindMouseListeners, isMouseDown, isRightMouseDown, getMousePosition } from 'app/utils/mouse';
-import { bindPointerListeners, isPrimaryPointerDown, isTwoTouch, /*isThreeTouch,*/ getPointerPosition } from 'app/utils/pointer';
+import { addContextMenuListeners, bindMouseListeners, isMouseDown, /*isRightMouseDown,*/ getMousePosition } from 'app/utils/mouse';
+import { bindPointerListeners, isPrimaryPointerDown, /*isTwoTouch,*/ /*isThreeTouch,*/ getPointerPosition } from 'app/utils/pointer';
 
 import {
     ASTEROID_CULLING_DISTANCE,
@@ -19,7 +19,105 @@ function initializeGame(state: GameState) {
     bindPointerListeners();
     addContextMenuListeners();
     addKeyboardListeners();
+    // fix scrolling and pinch/zoom on touch displays
+    const noResize = (e: TouchEvent) => {
+        if (e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }
+    mainCanvas.addEventListener('touchstart', noResize);
+
+    // check if displaying "full game" or "mobile" view
+    // style for mobile
+    /*
+    body {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        cursor: default;
+        color: #000;
+        background-color: #000;
+        background: #000;
+        display: flex;
+        flex-direction: column;
+    }
+    #gameArea {
+        display: block;
+        width: 100%;
+        min-height: 100%;
+        height: 100%;
+        margin: 0;
+        background-color: #000;
+        box-sizing: border-box;
+    }
+    #gameDivContainer {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: #000;
+    }
+    canvas {
+        display: block;
+        outline: none;
+        -moz-outline-style: none;
+        -moz-outline-style: none;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        -khtml-user-select: none;
+        -webkit-tap-highlight-color: rgba(0,0,0,0);
+    }
+    */
+    // style for "full game" <body>
+    /*
+    body {
+        background: url('gfx/darkstone.png');
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-size: 16px;
+    }
+    .mainGame {
+        position: relative;
+        margin-left: auto;
+        margin-right: auto;
+        padding-top: 0;
+        width: 800px;
+        min-height: 600px;
+        background-color: black;
+        background-repeat: repeat;
+        border: 5px solid gold;
+        top: 0px;
+        -moz-user-select: none;
+        -khtml-user-select: none;
+        -webkit-user-select: none;
+        -o-user-user-select: none;
+        cursor: default;
+    }
+    .gameContent {
+        position: relative;
+        overflow-x: hidden;
+        overflow-y: hidden;
+        white-space: nowrap;
+        width: 800px;
+        height: 600px;
+    }
+    */
+
+    // resize canvas to full window if window size is less than 600x800
+    if (window.innerHeight < 600) {
+        mainCanvas.height = Number(window.innerHeight) - 20;
+        mainCanvas.width = Number(window.innerWidth) - 20;
+    } else if (window.innerWidth < 800) {
+        mainCanvas.height = Number(window.innerHeight) - 20;
+        mainCanvas.width = Number(window.innerWidth) - 20;
+    }
+
     query('.js-loading')!.style.display = 'none';
+    query('.js-gameContent')!.style.display = '';
     query('.js-gameContent')!.style.display = '';
     state.gameHasBeenInitialized = true;
 
@@ -46,6 +144,7 @@ function update(): void {
     state.pointer.x = pointerX;
     state.pointer.y = pointerY;
     state.pointer.isDown = isPrimaryPointerDown();
+
     updatePlayerSpaceship(state);
     updateBullets(state);
     updateAsteroids(state);
@@ -164,7 +263,8 @@ function updatePlayerSpaceship(state: GameState) {
     if (spaceship.shootCooldown > 0) {
         spaceship.shootCooldown -= FRAME_LENGTH;
     }
-    if (spaceship.shootCooldown <= 0 && ( isGameKeyDown(state, GAME_KEY.SHOOT) || isRightMouseDown() || isTwoTouch() ) ) {
+    // have a shooting toggle
+    if (spaceship.shootCooldown <= 0 && spaceship.isShooting ) {
         state.playerBullets.push({
             x: spaceship.x + spaceship.size * dx,
             y: spaceship.y + spaceship.size * dy,

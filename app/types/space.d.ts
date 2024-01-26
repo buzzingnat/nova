@@ -13,6 +13,7 @@ interface Spaceship extends SpaceObject {
     rotation: number
     reloadTime: number
     shootCooldown: number
+    isShooting: boolean
     armor?: number
 }
 

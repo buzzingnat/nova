@@ -135,6 +135,7 @@ function isGamepadGamekeyPressed(gameKey: number) {
     const buttonIndexArray = Array.isArray(buttonIndexArrayOrNumber) ? buttonIndexArrayOrNumber : [buttonIndexArrayOrNumber];
     for (const buttonIndex of buttonIndexArray) {
         if (typeof(buttonIndex) !== 'undefined' || typeof(axisIndex) !== 'undefined') {
+            if (!navigator || !navigator.getGamepads) continue;
             // There can be multiple game pads connected. For now, let's just check all of them for the button.
             const gamepads = navigator.getGamepads();
             for (const gamepad of gamepads) {

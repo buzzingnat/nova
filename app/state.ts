@@ -43,6 +43,7 @@ function getInitialState(): GameState {
             reloadTime: 200,
             shootCooldown: 0,
             primaryColor: '#fff',
+            isShooting: false,
         },
         playerBullets: [],
         planets: [{
