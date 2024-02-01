@@ -1,7 +1,7 @@
 import { render } from 'app/render/renderGame';
 import { getState } from 'app/state';
 import { mainCanvas, mainContext } from 'app/utils/canvas';
-import { getDistance, doCirclesIntersect } from 'app/utils/geometry';
+import { getDistance, doCirclesIntersect, isPointInCircle } from 'app/utils/geometry';
 import { query } from 'app/utils/dom';
 import { addKeyboardListeners, isGameKeyDown, updateKeyboardState } from 'app/utils/userInput';
 import { addContextMenuListeners, bindMouseListeners, isMouseDown, /*isRightMouseDown,*/ getMousePosition } from 'app/utils/mouse';
@@ -26,86 +26,6 @@ function initializeGame(state: GameState) {
         }
     }
     mainCanvas.addEventListener('touchstart', noResize);
-
-    // check if displaying "full game" or "mobile" view
-    // style for mobile
-    /*
-    body {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        border: 0;
-        cursor: default;
-        color: #000;
-        background-color: #000;
-        background: #000;
-        display: flex;
-        flex-direction: column;
-    }
-    #gameArea {
-        display: block;
-        width: 100%;
-        min-height: 100%;
-        height: 100%;
-        margin: 0;
-        background-color: #000;
-        box-sizing: border-box;
-    }
-    #gameDivContainer {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        background-color: #000;
-    }
-    canvas {
-        display: block;
-        outline: none;
-        -moz-outline-style: none;
-        -moz-outline-style: none;
-        -moz-user-select: none;
-        -webkit-user-select: none;
-        -ms-user-select: none;
-        -khtml-user-select: none;
-        -webkit-tap-highlight-color: rgba(0,0,0,0);
-    }
-    */
-    // style for "full game" <body>
-    /*
-    body {
-        background: url('gfx/darkstone.png');
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        font-size: 16px;
-    }
-    .mainGame {
-        position: relative;
-        margin-left: auto;
-        margin-right: auto;
-        padding-top: 0;
-        width: 800px;
-        min-height: 600px;
-        background-color: black;
-        background-repeat: repeat;
-        border: 5px solid gold;
-        top: 0px;
-        -moz-user-select: none;
-        -khtml-user-select: none;
-        -webkit-user-select: none;
-        -o-user-user-select: none;
-        cursor: default;
-    }
-    .gameContent {
-        position: relative;
-        overflow-x: hidden;
-        overflow-y: hidden;
-        white-space: nowrap;
-        width: 800px;
-        height: 600px;
-    }
-    */
 
     // resize canvas to full window if window size is less than 600x800
     if (window.innerHeight < 600) {
@@ -145,7 +65,12 @@ function update(): void {
     state.pointer.y = pointerY;
     state.pointer.isDown = isPrimaryPointerDown();
 
-    updatePlayerSpaceship(state);
+    if (isPointInCircle(state.pointer, state.planets[0])) {
+        state.planets[0].primaryColor = 'pink';
+    } else {
+        updatePlayerSpaceship(state);
+    }
+
     updateBullets(state);
     updateAsteroids(state);
 

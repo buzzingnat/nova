@@ -63,6 +63,25 @@ export function bindPointerListeners() {
     document.addEventListener('pointercancel', onPointerUp);
 }
 
+export function isPointerOverElementRect(element: HTMLElement): boolean {
+    const rect:DOMRect = element.getBoundingClientRect();
+    return pointerPosition[0] >= rect.x && pointerPosition[0] <= rect.x + rect.width
+        && pointerPosition[1] >= rect.y && pointerPosition[1] <= rect.y + rect.height;
+}
+
+export function isPointerOverElementCircle(element: HTMLElement): boolean {
+    const rect:DOMRect = element.getBoundingClientRect();
+    const shortEdge: number = Math.min(rect.width, rect.height);
+    const circle: {x: number, y: number, radius: number} = {
+        x: rect.x + rect.width/2,
+        y: rect.y + rect.height/2,
+        radius: shortEdge/2,
+    };
+    const radius = circle.radius - .5;
+    const dx = circle.x - pointerPosition[0], dy = circle.y - pointerPosition[1];
+    return dx * dx + dy * dy < radius * radius;
+}
+
 // export function isMouseOverElement(element: HTMLElement): boolean {
 //     const rect:DOMRect = element.getBoundingClientRect();
 //     return mousePosition[0] >= rect.x && mousePosition[0] <= rect.x + rect.width

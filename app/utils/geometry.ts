@@ -20,6 +20,12 @@ export function isCircleInCircle(circleA: Circle, circleB: Circle): boolean {
     return dx * dx + dy * dy < radius * radius;
 }
 
+export function isPointInCircle(point: Point, circle: Circle): boolean {
+    const radius = circle.radius;
+    const dx = circle.x - point.x, dy = circle.y - point.y;
+    return dx * dx + dy * dy < radius;
+}
+
 export function getClosestElement<T extends Geometry>({x, y}: {x: number, y: number}, elements: T[]): T {
     let closestDistance2 = Number.MAX_SAFE_INTEGER, closestElement = elements[0];
     for (const element of elements) {
