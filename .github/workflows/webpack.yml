@@ -1,8 +1,6 @@
 name: NodeJS with Webpack
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -10,14 +8,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-
-   # found on https://github.com/actions/setup-node/issues/32#issuecomment-1003854758
+    - uses: actions/checkout@v4
+    # nvmrc step found at https://github.com/actions/setup-node/issues/32#issuecomment-1003854758
     - name: Setup node
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version-file: '.nvmrc'
-        
+        cache: 'yarn'
     - name: Run install
       uses: borales/actions-yarn@v4.2.0
       with:
