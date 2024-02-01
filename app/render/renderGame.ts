@@ -76,6 +76,7 @@ function renderAsteroid(context: CanvasRenderingContext2D, state: GameState, ast
     context.stroke();
 }
 
+// TODO: fix the arrow to edge of screen/canvas so that its always visible
 function renderGuidanceArrow(context: CanvasRenderingContext2D, state: GameState, source: Point, target: Point, color: string) {
     // Calculate angle and distance to the target
     const dy = target.y - source.y, dx = target.x - source.x;
